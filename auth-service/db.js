@@ -12,4 +12,9 @@ const pool = mysql.createPool({
     queueLimit: 0
 });
 
+
+pool.execute('SELECT 1')
+  .then(() => console.log('✅ Connexion MySQL OK'))
+  .catch(err => console.error('❌ Erreur de connexion à MySQL:', err));
+
 module.exports = pool;
