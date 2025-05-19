@@ -1,0 +1,26 @@
+# Ignorer les dépendances installées
+node_modules/
+.env
+
+# Ignorer les logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Ignorer les fichiers système
+.DS_Store
+Thumbs.db
+
+# Ignorer les fichiers générés
+dist/
+build/
+
+# Ignorer les bases de données temporaires
+*.sqlite
+*.db
+
+# Ignorer les caches et outputs
+.cache/
+coverage/
