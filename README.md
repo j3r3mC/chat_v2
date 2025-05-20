@@ -59,7 +59,7 @@ Ce service gère l'authentification des utilisateurs, y compris l'inscription, l
     ```bash
     npm start
 
-# 🔑 Endpoints
+## 🔑 Endpoints
 
 🚀 Inscription (POST /api/auth/register)<br>
 Permet aux utilisateurs de créer un compte.<br>
@@ -116,7 +116,7 @@ Ce service gère la communication en temps réel entre les utilisateurs via WebS
 ## Fonctionnalités
 ✔ WebSockets pour une communication en temps réel. ✔ API REST pour envoyer et récupérer des messages. ✔ Base de données MySQL pour stocker les messages. ✔ Protection via JWT (à intégrer avec l'auth-service).
 
-🚀 Endpoints API<br>
+## 🔑 Endpoints API
 
 📝 Envoyer un message (POST /chat/message)<br>
 🔹Permet d’envoyer un message et de le diffuser aux clients WebSockets :<br>
