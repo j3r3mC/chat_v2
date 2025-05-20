@@ -3,33 +3,33 @@ Custom discord
 
 # Architecture
 chat-app/
-├── api-gateway/
-│   ├── server.js
-│   ├── package.json
-│   └── .env  (optionnel, par exemple pour le port)
-├── auth-service/
-│   ├── controllers/
-│   │   └── authController.js
-│   ├── routes/
-│   │   └── auth.js
-│   ├── db.js
-│   ├── server.js
-│   ├── package.json
-│   └── .env
-├── chat-service/
-│   ├── db.js
-│   ├── server.js
-│   ├── package.json
-│   └── .env
-└── admin-service/
-    ├── controllers/
-    │   └── adminController.js
-    ├── routes/
-    │   └── admin.js
-    ├── db.js
-    ├── server.js
-    ├── package.json
-    └── .env
+├── api-gateway/<br>
+│   ├── server.js<br>
+│   ├── package.json<br>
+│   └── .env  (optionnel, par exemple pour le port)<br>
+├── auth-service/<br>
+│   ├── controllers/<br>
+│   │   └── authController.js<br>
+│   ├── routes/<br>
+│   │   └── auth.js<br>
+│   ├── db.js<br>
+│   ├── server.js<br>
+│   ├── package.json<br>
+│   └── .env<br>
+├── chat-service/<br>
+│   ├── db.js<br>
+│   ├── server.js<br>
+│   ├── package.json<br>
+│   └── .env<br>
+└── admin-service/<br>
+    ├── controllers/<br>
+    │   └── adminController.js<br>
+    ├── routes/<br>
+    │   └── admin.js<br>
+    ├── db.js<br>
+    ├── server.js<br>
+    ├── package.json<br>
+    └── .env<br>
 
 # Auth-Service
 
@@ -48,7 +48,7 @@ Ce service gère l'authentification des utilisateurs, y compris l'inscription, l
 
 3. Ajoute un fichier.env
     ```env
-    PORT=5000
+    PORT=3001
     DB_HOST=localhost
     DB_USER=root
     DB_PASSWORD=yourpassword
@@ -61,51 +61,51 @@ Ce service gère l'authentification des utilisateurs, y compris l'inscription, l
 
 # 🔑 Endpoints
 
-🚀 Inscription (POST /api/auth/register)
-Permet aux utilisateurs de créer un compte.
+🚀 Inscription (POST /api/auth/register)<br>
+Permet aux utilisateurs de créer un compte.<br>
 
-Requête :
-    ```json
-    {
+Requête :<br>
+    ```json<br>
+    {<br>
         "username": "JohnDoe",
         "email": "john@example.com",
         "password": "securepassword"
-    }
-Réponse :
-    ```json
-    {
-        "message": "Utilisateur créé avec succès"
-    }
+    }<br>
+Réponse :<br>
+    ```json<br>
+    {<br>
+        "message": "Utilisateur créé avec succès"<br>
+    }<br>
 
- 🔐 Connexion (POST /api/auth/login)
-Authentifie un utilisateur et retourne un JWT.
+ 🔐 Connexion (POST /api/auth/login)<br>
+Authentifie un utilisateur et retourne un JWT.<br>
 
-Requête :
-    ```json
-    {
-        "email": "john@example.com",
-        "password": "securepassword"
-    }
-Réponse :
-    ```json
-    {
-        "token": "eyJhbGciOiJIUzI1NiIsIn..."
-    }
+Requête :<br>
+    ```json<br>
+    {<br>
+        "email": "john@example.com",<br>
+        "password": "securepassword"<br>
+    }<br>
+Réponse :<br>
+    ```json<br>
+    {<br>
+        "token": "eyJhbGciOiJIUzI1NiIsIn..."<br>
+    }<br>
 
-🚪 Déconnexion (POST /api/auth/logout)
-Déconnecte un utilisateur (côté client).
+🚪 Déconnexion (POST /api/auth/logout)<br>
+Déconnecte un utilisateur (côté client).<br>
 
-Réponse :
-    ```json
-    {
-        "message": "Déconnexion réussie"    
-    }
-🛡️ Sécurité
-Hashing des mots de passe : Utilisation de bcrypt pour garantir leur sécurité.
+Réponse :<br>
+    ```json<br>
+    {<br>
+        "message": "Déconnexion réussie"<br>    
+    }<br>
+🛡️ Sécurité<br>
+Hashing des mots de passe : Utilisation de bcrypt pour garantir leur sécurité.<br>
 
-JWT : Les tokens sont utilisés pour authentifier les utilisateurs.
+JWT : Les tokens sont utilisés pour authentifier les utilisateurs.<br>
 
-Bonnes pratiques : Ne jamais stocker les mots de passe en clair.
+Bonnes pratiques : Ne jamais stocker les mots de passe en clair.<br>
 
-📜 Licence
-Projet sous licence MIT. Tu es libre de l'utiliser et de le modifier.
+📜 Licence<br>
+Projet sous licence MIT. Tu es libre de l'utiliser et de le modifier.<br>
