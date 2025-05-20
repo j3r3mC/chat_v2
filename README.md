@@ -109,3 +109,60 @@ Bonnes pratiques : Ne jamais stocker les mots de passe en clair.<br>
 
 📜 Licence<br>
 Projet sous licence MIT. Tu es libre de l'utiliser et de le modifier.<br>
+
+# Chat-Service
+Ce service gère la communication en temps réel entre les utilisateurs via WebSockets et fournit des API REST pour envoyer et récupérer des messages. Il est conçu pour s'intégrer avec l’auth-service pour l'authentification.
+
+## Fonctionnalités
+✔ WebSockets pour une communication en temps réel. ✔ API REST pour envoyer et récupérer des messages. ✔ Base de données MySQL pour stocker les messages. ✔ Protection via JWT (à intégrer avec l'auth-service).
+
+🚀 Endpoints API<br>
+
+📝 Envoyer un message (POST /chat/message)<br>
+🔹Permet d’envoyer un message et de le diffuser aux clients WebSockets :<br>
+    Méthode POST<br>
+    URL : http://localhost:3002/chat/message<br>
+
+🔹Requête :<br> 
+{<br>
+  "content": "Hello tout le monde!",<br>
+  "user_id": 1<br>
+}<br>
+🔹Réponse :<br>
+{<br>
+  "id": 10,<br>
+  "content": "Hello tout le monde!",<br>
+  "user_id": 1,<br>
+  "createdAt": "2025-05-20T14:57:00.000Z"<br>
+}<br>
+
+Récupérer les messages (GET /chat/messages)<br>
+Récupère l'historique des messages triés par date.<br>
+
+🔹 Requête :<br>
+ Méthode : GET<br>
+ URL : http://localhost:3002/chat/messages<br>
+
+🔹 Réponse exemple :<br>
+ [<br>
+  {<br>
+    "id": 1,<br>
+    "content": "Bienvenue sur le chat !",<br>
+    "user_id": 2,<br>
+    "createdAt": "2025-05-20T14:55:00.000Z"<br>
+  },<br>
+  {<br>
+    "id": 2,<br>
+    "content": "Comment ça va ?",<br>
+    "user_id": 3,<br>
+    "createdAt": "2025-05-20T14:57:00.000Z"<br>
+  }<br>
+]<br>
+🔒 Sécurité<br>
+✔ Protection JWT (à implémenter avec auth-service). ✔ Vérification des entrées (content, user_id). ✔ Cors activé pour autoriser les connexions Web.
+
+
+
+
+
+
