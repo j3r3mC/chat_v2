@@ -50,3 +50,15 @@ exports.createChannel = async (req, res) => {
         res.status(500).json({ message: "Erreur serveur lors de la création du canal" });
     }
 };
+
+// Fonction pour récupérer tous les channels
+exports.getChannels = async (req, res) => {
+    try {
+        const [rows] = await pool.query('SELECT * FROM channels ORDER BY createdAt DESC');
+        res.status(200).json(rows);
+    } catch (error) {
+        console.error("❌ Erreur lors de la récupération des channels :", error);
+        res.status(500).json({ message: "Erreur serveur" });
+    }
+};
+
