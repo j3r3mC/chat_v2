@@ -115,3 +115,52 @@ exports.logout = async (req, res) => {
         res.status(500).json({ message: "Erreur serveur lors de la déconnexion" });
     }
 };
+
+// Vérification du rôle SuperAdmin avant de créer un admin
+exports.registerAdmin = async (req, res) => {
+    const { username, email, password } = req.body;
+    try {
+        // Vérifier que l'utilisateur est superadmin
+        const token = req.headers.authorization?.split(" ")[1];
+        if (!token) {
+            return res.status(403).json({ message: "Accès refusé, aucun token." });
+        }
+
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const [rows] = await pool.execute("SELECT role FROM users WHERE id = ?", [decoded.id]);
+
+        if (rows.length === 0 || rows[0].role !== 'superadmin') {
+            return res.status(403).json({ message: "Accès refusé, vous n'êtes pas superadmin." });
+        }
+
+        // Vérification des champs obligatoires
+        if (!username || !email || !password) {
+            return res.status(400).json({ message: 'Tous les champs sont requis' });
+        }
+
+        // Vérification du format de l'email
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return res.status(400).json({ message: 'Email invalide' });
+        }
+
+        // Vérification si l'email est déjà utilisé
+        const [existingUser] = await pool.execute('SELECT * FROM users WHERE email = ?', [email]);
+        if (existingUser.length > 0) {
+            return res.status(400).json({ message: 'Email déjà utilisé' });
+        }
+
+        // Hachage du mot de passe
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        // Insérer l'administrateur avec le rôle "admin"
+        await pool.execute('INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, ?)', 
+            [username, email, hashedPassword, 'admin']
+        );
+
+        res.status(201).json({ message: 'Administrateur créé avec succès' });
+    } catch (error) {
+        console.error('Erreur lors de la création de l\'admin:', error);
+        res.status(500).json({ message: 'Erreur serveur lors de la création de l\'admin' });
+    }
+};
