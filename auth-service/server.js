@@ -6,6 +6,8 @@ const authroutes = require('./routes/auth');
 const app = express();
 app.use(express.json());
 
+const cors = require("cors");
+app.use(cors()); // 🔥 Autorise les requêtes du frontend
 
 //routes pour l'authentification
 app.use('/api/auth', authroutes);
