@@ -8,12 +8,12 @@ const pool = require("./db");
 const jwt = require("jsonwebtoken");
 
 const app = express();
-app.use(express.json()); // Permet de lire le body JSON des requêtes
+app.use(express.json());
 
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: "*", // Ajustez cette valeur selon vos besoins de sécurité
+    origin: "*",
     methods: ["GET", "POST"],
   },
 });
@@ -27,7 +27,7 @@ const verifyToken = (req, res, next) => {
   try {
     const token = authHeader.split(" ")[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded; // Stocke les informations utilisateur
+    req.user = decoded;
     next();
   } catch (error) {
     return res.status(403).json({ message: "Accès refusé : Token invalide" });
@@ -39,7 +39,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// 📌 Route REST pour envoyer un message (avec vérification du canal)
+// 📌 Route REST pour envoyer un message
 app.post("/chat/message", verifyToken, async (req, res) => {
   const { content, channel_id } = req.body;
   const user_id = req.user.id;
@@ -66,15 +66,23 @@ app.post("/chat/message", verifyToken, async (req, res) => {
       [content, user_id, channel_id]
     );
 
+    // 🔥 Récupérer le nom et la date du message en base
+    const [messageRows] = await pool.query(
+      "SELECT messages.createdAt, users.username FROM messages JOIN users ON messages.user_id = users.id WHERE messages.id = ?",
+      [result.insertId]
+    );
+    const username = messageRows.length > 0 ? messageRows[0].username : "Utilisateur inconnu";
+    const created_at = messageRows.length > 0 ? messageRows[0].createdAt : new Date().toISOString();
+
     const newMessage = {
       id: result.insertId,
       content,
-      user_id,
+      username,
       channel_id,
-      created_at: new Date(),  // Utilisation de created_at
+      created_at,  // ✅ Date récupérée depuis la base
     };
 
-    // Émettre le message vers les clients sur le channel concerné
+    // 🔥 Émettre le message avec la bonne date et le bon username
     io.to(`channel-${channel_id}`).emit("chat message", newMessage);
     res.status(201).json(newMessage);
   } catch (error) {
@@ -83,15 +91,19 @@ app.post("/chat/message", verifyToken, async (req, res) => {
   }
 });
 
-// 📌 Route REST pour récupérer les messages d'un canal
+// 📌 Route REST pour récupérer les messages
 app.get("/chat/messages/:channel_id", verifyToken, async (req, res) => {
   const channel_id = req.params.channel_id;
   try {
-    const [rows] = await pool.query(
-      "SELECT * FROM messages WHERE channel_id = ? ORDER BY createdAt ASC LIMIT 50",
-      [channel_id]
-    );
-    console.log("🕰️ Messages envoyés à l'API :", rows);
+    const [rows] = await pool.query(`
+      SELECT messages.id, messages.content, messages.createdAt AS created_at, users.username 
+      FROM messages
+      JOIN users ON messages.user_id = users.id
+      WHERE messages.channel_id = ? 
+      ORDER BY messages.createdAt ASC LIMIT 50
+    `, [channel_id]);
+
+    console.log("🕰️ Messages envoyés à l'API avec nom d'utilisateur :", rows);
     res.status(200).json(rows);
   } catch (error) {
     console.error("❌ Erreur lors de la récupération des messages :", error);
@@ -104,18 +116,15 @@ app.use((req, res, next) => {
   next();
 });
 
-// 📌 Gestion des WebSockets pour les channels
+// 📌 Gestion des WebSockets
 io.on("connection", (socket) => {
   console.log(`🟢 Client connecté : ${socket.id}`);
 
-  // Ici, nous utilisons l'objet envoyé par le client pour connaitre le flag skipHistory.
   socket.on("join channel", async (data) => {
     const { channel_id, skipHistory } = data;
     console.log(`👤 Client ${socket.id} rejoint le canal ${channel_id} avec skipHistory=${skipHistory}`);
     socket.join(`channel-${channel_id}`);
 
-    // Si le client demande de ne pas recevoir l'historique (skipHistory=true),
-    // ne rien faire ici : l'historique sera récupéré via l'API.
     if (skipHistory) {
       console.log("⏩ Historique ignoré pour ce client (skipHistory activé).");
       return;
@@ -124,11 +133,15 @@ io.on("connection", (socket) => {
     try {
       if (!socket.joinedChannels) socket.joinedChannels = new Set();
       if (!socket.joinedChannels.has(channel_id)) {
-        const [messages] = await pool.query(
-          "SELECT * FROM messages WHERE channel_id = ? ORDER BY createdAt ASC LIMIT 50",
-          [channel_id]
-        );
-        console.log("📜 Envoi des anciens messages :", messages);
+        const [messages] = await pool.query(`
+          SELECT messages.id, messages.content, messages.createdAt AS created_at, users.username 
+          FROM messages
+          JOIN users ON messages.user_id = users.id
+          WHERE messages.channel_id = ? 
+          ORDER BY messages.createdAt ASC LIMIT 50
+        `, [channel_id]);
+
+        console.log("📜 Envoi des anciens messages avec username :", messages);
         socket.emit("previous messages", messages);
         socket.joinedChannels.add(channel_id);
       } else {
@@ -136,41 +149,6 @@ io.on("connection", (socket) => {
       }
     } catch (error) {
       console.error("❌ Erreur lors de l'envoi des anciens messages :", error);
-    }
-  });
-
-  // Réception d'un message émis par un client via WebSocket
-  socket.on("chat message", async (msg) => {
-    try {
-      if (!msg.content || !msg.user_id || !msg.channel_id) {
-        console.error("❌ Message invalide :", msg);
-        return;
-      }
-
-      // Insertion du message dans la base de données (pour une synchronisation bidirectionnelle)
-      const [channelRows] = await pool.query("SELECT type FROM channels WHERE id = ?", [msg.channel_id]);
-      if (channelRows.length === 0) {
-        console.error("❌ Canal introuvable :", msg.channel_id);
-        return;
-      }
-
-      const [result] = await pool.query(
-        "INSERT INTO messages (content, user_id, channel_id) VALUES (?, ?, ?)",
-        [msg.content, msg.user_id, msg.channel_id]
-      );
-
-      const newMessage = {
-        id: result.insertId,
-        content: msg.content,
-        user_id: msg.user_id,
-        channel_id: msg.channel_id,
-        created_at: new Date(), // Création d'une date ici
-      };
-
-      // Émettre le message aux autres clients du channel
-      io.to(`channel-${msg.channel_id}`).emit("chat message", newMessage);
-    } catch (error) {
-      console.error("❌ Erreur lors de l'envoi du message :", error);
     }
   });
 
