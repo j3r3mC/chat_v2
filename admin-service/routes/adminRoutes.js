@@ -1,13 +1,12 @@
 const express = require("express");
 const { getUsers, deleteUser } = require("../controllers/adminController");
-const verifyAdmin = require("../middleware/verifyAdmin");
-
+const verifyAccess = require("../middleware/verifAccess");
 const router = express.Router();
 
-// 🔗 Récupérer tous les utilisateurs
-router.get("/users", verifyAdmin, getUsers);
+// ✅ Accessible à tous les utilisateurs (allowAllUsers = true)
+router.get("/users", verifyAccess(true), getUsers);
 
-// 🔗 Supprimer un utilisateur
-router.delete("/user/:id", verifyAdmin, deleteUser);
+// 🔥 Accessible uniquement aux admins (par défaut)
+router.delete("/user/:id", verifyAccess(), deleteUser);
 
 module.exports = router;
