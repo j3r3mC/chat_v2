@@ -1,17 +1,20 @@
 const express = require("express");
-const { createChannel, getChannels, joinChannel } = require("../controllers/channelController");
+const { createChannel, getChannels, joinChannel, deleteChannel } = require("../controllers/channelController");
 const verifyAdmin = require("../middleware/verifyAdmin");
 const validateChannel = require("../middleware/validateChannel");
 
 const router = express.Router();
 
-// Route pour récupérer la liste des canaux
+// Liste des channels (accessible à tous)
 router.get("/all", getChannels);
 
-// Route pour créer un nouveau canal (protégée : seuls les admins peuvent créer, avec validation des données)
+// Création d'un channel (réservé aux admins)
 router.post("/create", verifyAdmin, validateChannel, createChannel);
 
-// Route pour rejoindre un canal (accessible pour tout utilisateur authentifié)
+// 🔥 Suppression d'un channel (réservé aux admins)
+router.delete("/channel/:id", verifyAdmin, deleteChannel);
+
+// Rejoindre un channel (accessible à tous les utilisateurs authentifiés)
 router.post("/join", joinChannel);
 
 module.exports = router;
