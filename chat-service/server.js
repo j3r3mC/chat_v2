@@ -1,4 +1,3 @@
-require("dotenv").config();
 const express = require("express");
 const http = require("http");
 const socketIo = require("socket.io");
@@ -10,11 +9,9 @@ app.use(express.json());
 
 const server = http.createServer(app);
 const io = socketIo(server, { cors: { origin: "*", methods: ["GET", "POST"] } });
-
-app.set("socketio", io); // ✅ **Correction : Permet à `chatController.js` d'utiliser WebSocket**
+app.set("socketio", io);
 
 app.use("/chat", chatRoutes);
-
 configureSocket(io);
 
 const PORT = process.env.PORT || 3002;

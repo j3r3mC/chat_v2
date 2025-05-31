@@ -2,7 +2,7 @@
   "name": "chat-app",
   "version": "1.0.0",
   "scripts": {
-    "start-all": "concurrently \"cd api-gateway && npm start\" \"cd auth-service && npm start\" \"cd chat-service && npm start\" \"cd admin-service && npm start\""
+"start-all": "concurrently \"cd api-gateway && npm start\" \"cd auth-service && npm start\" \"cd chat-service && npm start\" \"cd admin-service && npm start\" \"cd channel-service && npm start\""
   },
   "dependencies": {
     "concurrently": "^7.0.0",

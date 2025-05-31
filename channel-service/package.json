@@ -1,7 +1,7 @@
 {
-  "name": "admin-service",
+  "name": "channel-service",
   "version": "1.0.0",
-  "description": "Service de gestion des utilisateurs et des permissions admin",
+  "description": "Service de gestion des canaux",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
