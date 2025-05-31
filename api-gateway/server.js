@@ -7,18 +7,19 @@ const app = express();
 app.use(cors()); // Autorise les requêtes inter-origines
 app.use(express.json());
 
-// Middleware de débogage pour afficher les requêtes entrantes
+// 🔍 Middleware de débogage pour afficher les requêtes entrantes
 app.use((req, res, next) => {
   console.log(`🔍 API Gateway reçoit : ${req.method} ${req.url}`);
+  console.log("🛠️ Headers reçus :", req.headers);
   next();
 });
 
-// Proxy vers auth-service (avec gestion du body)
+// 🔥 Proxy vers Auth-Service (avec gestion du body)
 app.use("/api/auth", createProxyMiddleware({
   target: "http://127.0.0.1:3001",
   changeOrigin: true,
   onProxyReq: (proxyReq, req, res) => {
-    if (req.body) {
+    if (req.body && Object.keys(req.body).length > 0) {
       const bodyData = JSON.stringify(req.body);
       proxyReq.setHeader("Content-Length", Buffer.byteLength(bodyData));
       proxyReq.setHeader("Content-Type", "application/json");
@@ -27,8 +28,7 @@ app.use("/api/auth", createProxyMiddleware({
   }
 }));
 
-// Proxy vers chat-service
-// Proxy vers chat-service
+// 🔥 Proxy vers Chat-Service
 app.use("/api/chat", createProxyMiddleware({
   target: "http://127.0.0.1:3002",
   changeOrigin: true,
@@ -43,15 +43,13 @@ app.use("/api/chat", createProxyMiddleware({
   }
 }));
 
-
-// Proxy vers admin-service
+// 🔥 Proxy vers Admin-Service (⚠️ Supprime `pathRewrite` pour éviter une redirection incorrecte)
 app.use("/api/admin", createProxyMiddleware({
   target: "http://127.0.0.1:3003",
-  changeOrigin: true,
-  pathRewrite: { "^/api/admin": "/" }
+  changeOrigin: true
 }));
 
-// Proxy vers channel-service (ajout du onProxyReq pour transmettre le body)
+// 🔥 Proxy vers Channel-Service (avec gestion du body)
 app.use("/api/channels", createProxyMiddleware({
   target: "http://127.0.0.1:3004",
   changeOrigin: true,
@@ -59,10 +57,8 @@ app.use("/api/channels", createProxyMiddleware({
   onProxyReq: (proxyReq, req, res) => {
     if (req.body && Object.keys(req.body).length > 0) {
       const bodyData = JSON.stringify(req.body);
-      // Met à jour Content-Length et Content-Type
       proxyReq.setHeader("Content-Length", Buffer.byteLength(bodyData));
       proxyReq.setHeader("Content-Type", "application/json");
-      // Écrit le body dans la requête proxifiée
       proxyReq.write(bodyData);
     }
   }
