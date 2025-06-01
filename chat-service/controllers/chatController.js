@@ -8,16 +8,18 @@ exports.sendMessage = async (req, res) => {
     }
     const user_id = req.user.id;
 
+    // ✅ Enregistrement du message dans la base de données
     const [result] = await pool.query(
       "INSERT INTO messages (content, user_id, channel_id) VALUES (?, ?, ?)",
       [content, user_id, channel_id]
     );
     const messageId = result.insertId;
 
+    // ✅ Récupération du message avec `user_id`
     const [messageRows] = await pool.query(
-      `SELECT messages.createdAt AS created_at, users.username 
-       FROM messages 
-       JOIN users ON messages.user_id = users.id 
+      `SELECT messages.id, messages.content, messages.createdAt AS created_at, users.username, messages.user_id
+       FROM messages
+       JOIN users ON messages.user_id = users.id
        WHERE messages.id = ?`,
       [messageId]
     );
@@ -26,12 +28,13 @@ exports.sendMessage = async (req, res) => {
       id: messageId,
       content,
       username: messageRows[0].username,
+      user_id, // ✅ Ajout de `user_id`
       channel_id,
       created_at: messageRows[0].created_at
     };
 
     const io = req.app.get("socketio");
-    console.log("📢 WebSocket - Envoi du message :", newMessage);
+    console.log("📢 WebSocket - Envoi du message avec user_id :", newMessage);
     io.to(`channel-${channel_id}`).emit("chat message", newMessage);
 
     res.status(201).json(newMessage);
@@ -48,14 +51,17 @@ exports.getMessages = async (req, res) => {
       return res.status(401).json({ message: "Non authentifié" });
     }
 
+    // ✅ Modification : Ajout de `user_id` dans la récupération des messages
     const [messages] = await pool.query(
-      `SELECT messages.id, messages.content, messages.createdAt AS created_at, users.username
+      `SELECT messages.id, messages.content, messages.createdAt AS created_at, users.username, messages.user_id
        FROM messages
        JOIN users ON messages.user_id = users.id
        WHERE messages.channel_id = ?
        ORDER BY messages.createdAt ASC`,
       [channel_id]
     );
+
+    console.log("📥 Messages envoyés à ChatRoom.js :", messages); // ✅ Vérification console
 
     res.status(200).json(messages);
   } catch (error) {
