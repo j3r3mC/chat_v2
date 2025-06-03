@@ -1,6 +1,49 @@
 const pool = require("../db");
 
-exports.sendMessage = async (req, res) => {
+// ✅ Upload de fichier sans Multer ici
+module.exports.uploadFile = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "Aucun fichier envoyé" });
+    }
+
+    const { channel_id } = req.body;
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ message: "Non authentifié" });
+    }
+
+    const user_id = req.user.id;
+    const filePath = `/uploads/${req.file.filename}`;
+
+    const [result] = await pool.query(
+      "INSERT INTO messages (file_url, user_id, channel_id) VALUES (?, ?, ?)",
+      [filePath, user_id, channel_id]
+    );
+
+    console.log("✅ Fichier reçu :", req.file);
+    console.log("✅ Taille :", req.file.size);
+    console.log("✅ Mime type :", req.file.mimetype);
+
+    const newMessage = {
+      id: result.insertId,
+      file_url: filePath,
+      user_id,
+      channel_id,
+      created_at: new Date().toISOString(),
+    };
+
+    const io = req.app.get("socketio");
+    io.to(`channel-${channel_id}`).emit("file message", newMessage);
+
+    res.status(201).json(newMessage);
+  } catch (error) {
+    console.error("❌ Erreur lors de l'upload du fichier :", error);
+    res.status(500).json({ message: "Erreur serveur", error: error.toString() });
+  }
+};
+
+// ✅ Envoi de message
+module.exports.sendMessage = async (req, res) => {
   try {
     const { content, channel_id } = req.body;
     if (!req.user || !req.user.id) {
@@ -41,7 +84,8 @@ exports.sendMessage = async (req, res) => {
   }
 };
 
-exports.getMessages = async (req, res) => {
+// ✅ Récupération des messages
+module.exports.getMessages = async (req, res) => {
   try {
     const { channel_id } = req.params;
     if (!req.user || !req.user.id) {
@@ -49,7 +93,7 @@ exports.getMessages = async (req, res) => {
     }
 
     const [messages] = await pool.query(
-      `SELECT messages.id, messages.content, messages.createdAt AS created_at, users.username, messages.user_id
+      `SELECT messages.id, messages.content, messages.file_url, messages.createdAt AS created_at, users.username, messages.user_id
        FROM messages
        JOIN users ON messages.user_id = users.id
        WHERE messages.channel_id = ?
@@ -64,7 +108,8 @@ exports.getMessages = async (req, res) => {
   }
 };
 
-exports.updateMessage = async (req, res) => {
+// ✅ Mise à jour d'un message
+module.exports.updateMessage = async (req, res) => {
   try {
     const { id } = req.params;
     const { content } = req.body;
@@ -85,8 +130,6 @@ exports.updateMessage = async (req, res) => {
     }
 
     await pool.query("UPDATE messages SET content = ?, updated_at = NOW() WHERE id = ?", [content, id]);
-    console.log("📢 WebSocket - Envoi du message mis à jour :", { id, content });
-
 
     const updatedMessage = {
       id,
@@ -97,9 +140,7 @@ exports.updateMessage = async (req, res) => {
     };
 
     const io = req.app.get("socketio");
-    console.log("📢 WebSocket - Envoi du message mis à jour :", { id, content });
     io.to(`channel-${updatedMessage.channel_id}`).emit("update message", updatedMessage);
-    console.log("✅ Message mis à jour et émis via WebSocket :", updatedMessage);
 
     res.status(200).json(updatedMessage);
   } catch (error) {
@@ -108,12 +149,12 @@ exports.updateMessage = async (req, res) => {
   }
 };
 
-exports.deleteMessage = async (req, res) => {
+// ✅ Suppression d'un message
+module.exports.deleteMessage = async (req, res) => {
   const { id } = req.params;
   try {
     const [messageInfo] = await pool.query("SELECT channel_id FROM messages WHERE id = ?", [id]);
     if (!messageInfo.length) return res.status(404).json({ message: "Message introuvable" });
-    const channelId = messageInfo[0].channel_id;
 
     const [result] = await pool.query("DELETE FROM messages WHERE id = ?", [id]);
     if (!result.affectedRows) return res.status(404).json({ message: "Message introuvable" });
@@ -121,9 +162,10 @@ exports.deleteMessage = async (req, res) => {
     res.status(200).json({ message: "Message supprimé" });
 
     const io = req.app.get("socketio");
-    io.to(`channel-${channelId}`).emit("delete message", { messageId: id });
+    io.to(`channel-${messageInfo[0].channel_id}`).emit("delete message", { messageId: id });
   } catch (error) {
     console.error("❌ Erreur lors de la suppression du message :", error);
     res.status(500).json({ message: "Erreur serveur", error: error.toString() });
   }
 };
+

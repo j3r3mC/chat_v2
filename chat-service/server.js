@@ -23,7 +23,8 @@ app.set("socketio", io);
 
 // Montez vos routes API sous le préfixe /chat
 app.use("/chat", chatRoutes);
-
+const path = require("path");
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 // Configurez la logique Socket (par exemple, rejoindre une room, gestion des déconnexions, etc.)
 configureSocket(io);
 
