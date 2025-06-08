@@ -94,6 +94,55 @@ const getPrivateConversations = async (userId) => {
         throw error;
     }
 };
+const updateMessage = async (req, res) => {
+    try {
+        const { messageId } = req.params;
+        const { content } = req.body;
+        const senderId = req.user.id;
 
-// ✅ Export des fonctions
-module.exports = { sendMessage, getMessages, getPrivateConversations };
+        if (!content) {
+            return res.status(400).json({ error: "Le contenu du message est requis" });
+        }
+
+        const [message] = await pool.query("SELECT sender_id FROM private_messages WHERE id = ?", [messageId]);
+
+        if (!message.length || message[0].sender_id !== senderId) {
+            return res.status(403).json({ error: "Non autorisé à modifier ce message" });
+        }
+
+        const encryptedContent = encryptMessage(content);
+        await pool.query("UPDATE private_messages SET content = ?, updated_at = NOW() WHERE id = ?", [encryptedContent, messageId]);
+
+        req.io.emit("messageUpdated", { messageId, content }); // 🔥 Mise à jour en temps réel
+
+        res.status(200).json({ success: true, message: "Message mis à jour !" });
+    } catch (error) {
+        console.error("❌ Erreur mise à jour MP :", error);
+        res.status(500).json({ error: "Erreur serveur" });
+    }
+};
+
+const deleteMessage = async (req, res) => {
+    try {
+        const { messageId } = req.params;
+        const senderId = req.user.id;
+
+        const [message] = await pool.query("SELECT sender_id FROM private_messages WHERE id = ?", [messageId]);
+
+        if (!message.length || message[0].sender_id !== senderId) {
+            return res.status(403).json({ error: "Non autorisé à supprimer ce message" });
+        }
+
+        await pool.query("DELETE FROM private_messages WHERE id = ?", [messageId]);
+
+        req.io.emit("messageDeleted", messageId); // 🔥 Suppression en temps réel
+
+        res.status(200).json({ success: true, message: "Message supprimé !" });
+    } catch (error) {
+        console.error("❌ Erreur suppression MP :", error);
+        res.status(500).json({ error: "Erreur serveur" });
+    }
+};
+
+module.exports = { sendMessage, getMessages, updateMessage, deleteMessage, getPrivateConversations };
+
