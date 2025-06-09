@@ -88,20 +88,24 @@ const updateMessage = async (req, res) => {
       return res.status(403).json({ error: "Non autorisé à modifier ce message" });
     }
 
+    // Chiffrer le nouveau contenu
     const encryptedContent = encryptMessage(content);
     await pool.query(
       "UPDATE private_messages SET content = ?, updated_at = NOW() WHERE id = ?",
       [encryptedContent, messageId]
     );
 
-    // Émission d’un événement en temps réel pour la mise à jour
-    req.io.emit("update private message", { messageId, content });
+    // Option : Pour l'affichage, on déchiffre immédiatement le contenu avant l'émission
+    const decryptedContent = decryptMessage(encryptedContent);
+    req.io.emit("update private message", { messageId, content: decryptedContent });
+
     res.status(200).json({ success: true, message: "Message mis à jour !" });
   } catch (error) {
     console.error("❌ Erreur mise à jour MP :", error.message);
     res.status(500).json({ error: "Erreur serveur" });
   }
 };
+
 
 // 🚀 Suppression d'un message privé
 const deleteMessage = async (req, res) => {
