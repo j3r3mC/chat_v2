@@ -1,36 +1,52 @@
-io.on("connection", (socket) => {
-  console.log("🔌 Utilisateur connecté au WebSocket :", socket.id);
+// socketChat.js
+const socketIo = require("socket.io");
+const pool = require("../db/db"); // Vérifie le chemin
 
-  // 🚀 Écoute la mise à jour d'un message privé
-  socket.on("update private message", async (msg) => {
-    try {
-      await pool.execute(
-        "UPDATE private_messages SET content = ?, updated_at = NOW() WHERE id = ?",
-        [msg.content, msg.messageId]
-      );
-      console.log("📝 Message mis à jour :", msg);
-
-      // 🔥 Diffuser la mise à jour à tous les utilisateurs du chat
-      io.emit("update private message", msg);
-    } catch (error) {
-      console.error("❌ Erreur mise à jour message :", error);
-    }
+function initSocket(server) {
+  const io = socketIo(server, {
+    cors: { origin: "*" } // Adapté en production
   });
 
-  // 🗑 Écoute la suppression d'un message privé
-  socket.on("delete private message", async (msg) => {
-    try {
-      await pool.execute("DELETE FROM private_messages WHERE id = ?", [msg.messageId]);
-      console.log("🗑 Message supprimé :", msg);
+  io.on("connection", (socket) => {
+    console.log(`🟢 Connexion WebSocket : ${socket.id}`);
 
-      // 🔥 Diffuser la suppression à tous les utilisateurs du chat
-      io.emit("delete private message", msg);
-    } catch (error) {
-      console.error("❌ Erreur suppression message :", error);
-    }
+    // Événement pour l'envoi d'un message
+    socket.on("send private message", (msg) => {
+      console.log("📩 Nouveau message reçu via socket :", msg);
+      io.emit("new private message", msg);
+    });
+
+    // Événement pour la mise à jour d'un message
+    socket.on("update private message", async (msg) => {
+      try {
+        await pool.execute(
+          "UPDATE private_messages SET content = ?, updated_at = NOW() WHERE id = ?",
+          [msg.content, msg.messageId]
+        );
+        console.log("📝 Message mis à jour :", msg);
+        io.emit("update private message", msg);
+      } catch (error) {
+        console.error("❌ Erreur mise à jour message :", error);
+      }
+    });
+
+    // Événement pour la suppression d'un message
+    socket.on("delete private message", async (msg) => {
+      try {
+        await pool.execute("DELETE FROM private_messages WHERE id = ?", [msg.messageId]);
+        console.log("🗑 Message supprimé :", msg);
+        io.emit("delete private message", msg);
+      } catch (error) {
+        console.error("❌ Erreur suppression message :", error);
+      }
+    });
+
+    socket.on("disconnect", () => {
+      console.log(`🔴 Déconnexion : ${socket.id}`);
+    });
   });
 
-  socket.on("disconnect", () => {
-    console.log(`🔌 Utilisateur déconnecté : ${socket.id}`);
-  });
-});
+  return io;
+}
+
+module.exports = initSocket;
