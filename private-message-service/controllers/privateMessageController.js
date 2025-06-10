@@ -1,4 +1,3 @@
-// privateMessageController.js
 const pool = require("../db/db");
 const path = require("path");
 const fs = require("fs");
@@ -6,7 +5,7 @@ const { encryptMessage, decryptMessage } = require("../security/cryptoUtils");
 const mime = require("mime-types"); // Pour détecter le type MIME
 
 // ──────────────────────────────────────────────
-// Envoyer un message privé (texte) – on conserve le chiffrement pour le texte
+// Envoyer un message privé (texte) – chiffrement pour le texte
 // ──────────────────────────────────────────────
 const sendMessage = async (req, res) => {
   try {
@@ -38,7 +37,7 @@ const sendMessage = async (req, res) => {
 };
 
 // ──────────────────────────────────────────────
-// Récupérer les messages d'une conversation
+// Récupérer tous les messages privés
 // ──────────────────────────────────────────────
 const getMessages = async (req, res) => {
   try {
@@ -58,10 +57,10 @@ const getMessages = async (req, res) => {
       if (msg.file_name && msg.file_type) {
         return {
           ...msg,
-          isFile: true,             // Indique que c'est un message fichier
-          fileName: msg.file_name,    // Nom du fichier en clair
-          filePath: msg.content,      // Le champ "content" contient ici le chemin en clair
-          fileType: msg.file_type,    // Type en clair
+          isFile: true,
+          fileName: msg.file_name,
+          filePath: msg.content, // "content" stocke le chemin en clair
+          fileType: msg.file_type,
         };
       } else {
         // Message texte : déchiffrer le contenu
@@ -162,9 +161,9 @@ const sendFileMessage = async (req, res) => {
     fs.writeFileSync(absoluteFilePath, fileBuffer);
     // Construire le chemin relatif pour l'accès public
     const relativeFilePath = path.join("upload", savedFileName).replace(/\\/g, "/");
-    // Déterminer le type MIME à l'aide de mime-types (si req.file.mimetype n'est pas défini)
+    // Déterminer le type MIME à l'aide de mime-types
     const fileType = req.file.mimetype || mime.lookup(req.file.originalname) || "unknown";
-    // Insertion en DB : on stocke dans "content" le chemin en clair, et "file_name" le nom en clair
+    // Insertion en DB
     const [result] = await pool.query(
       "INSERT INTO private_messages (sender_id, receiver_id, content, file_name, file_type) VALUES (?, ?, ?, ?, ?)",
       [senderId, receiverId, relativeFilePath, req.file.originalname, fileType]
@@ -186,6 +185,27 @@ const sendFileMessage = async (req, res) => {
     res.status(500).json({ error: "Erreur interne du serveur" });
   }
 };
+const getConversations = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(400).json({ error: "Utilisateur non authentifié" });
+    }
+    // Récupérer tous les messages où l'utilisateur est soit l'expéditeur, soit le destinataire
+    const [messages] = await pool.query(
+      "SELECT * FROM private_messages WHERE sender_id = ? OR receiver_id = ? ORDER BY created_at DESC",
+      [userId, userId]
+    );
+    
+    // Vous pouvez ici effectuer un groupement côté serveur si vous le souhaitez.
+    // Pour cet exemple, on renvoie simplement tous les messages.
+    res.status(200).json({ success: true, conversations: messages });
+  } catch (error) {
+    console.error("Erreur lors de la récupération des conversations :", error.message);
+    res.status(500).json({ error: "Erreur interne du serveur" });
+  }
+};
+
 
 module.exports = {
   sendMessage,
@@ -193,4 +213,5 @@ module.exports = {
   updateMessage,
   deleteMessage,
   sendFileMessage,
+  getConversations,
 };

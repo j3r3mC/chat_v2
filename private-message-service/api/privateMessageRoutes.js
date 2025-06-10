@@ -11,6 +11,7 @@ const {
   updateMessage,
   deleteMessage,
   sendFileMessage,
+  getConversations,
 } = require("../controllers/privateMessageController");
 
 const authMiddleware = require("../middleware/authMiddleware");
@@ -29,5 +30,7 @@ router.put("/update/:messageId", authMiddleware, updateMessage);
 
 // Route pour supprimer un message privé
 router.delete("/delete/:messageId", authMiddleware, deleteMessage);
+// Route pour récupérer les conversations privées
+router.get("/conversations", authMiddleware, getConversations);
 
 module.exports = router;
